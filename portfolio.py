@@ -48,7 +48,7 @@ class Portfolio:
             'symbol': symbol,
             'date': date,
             'quantity': quantity,
-            'price': price,
+            'price': f"{float(price):.4f}",
             'type': 'long_entry'
         })
 
@@ -68,9 +68,9 @@ class Portfolio:
             'symbol': symbol,
             'date': date,
             'quantity': quantity,
-            'price': price,
+            'price': f"{float(price):.4f}",
             'type': 'long_exit',
-            'profit_loss': profit_loss
+            'profit_loss': f"{float(profit_loss):.4f}"
         })
 
     def close_all_positions(self, symbol, closing_market_price, date):
