@@ -15,7 +15,7 @@ class StockDataService:
         # Try fetching data from the database first
         data = self.db.get_data(symbol, start_date, end_date)
         if data:
-            print("Data retrieved from database.")
+            print("Data retrieved from database.")  
             return data
         
         # If no data in the database, fetch it from the API

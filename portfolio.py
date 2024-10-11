@@ -61,7 +61,7 @@ class Portfolio:
         quantity = position['quantity']
         entry_price = position['price']
         profit_loss = (price - entry_price) * quantity * position['lever']
-        self.balance += quantity * price
+        self.balance += quantity * entry_price + profit_loss
 
         del self.active_positions[symbol]
         self.trade_history.append({

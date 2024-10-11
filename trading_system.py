@@ -1,15 +1,15 @@
 import pandas as pd
-from strategy import BasicStrategy
+from learning_models.strategy_interface import TradingStrategy
 from portfolio import Portfolio
 from data.stock_data_service import StockDataService
 
 class TradingSystem:
-    def __init__(self, portfolio: Portfolio, strategy: BasicStrategy, data_service: StockDataService):
+    def __init__(self, portfolio: Portfolio, strategy: TradingStrategy, data_service: StockDataService):
         self.portfolio = portfolio
         self.strategy = strategy
         self.data_service = data_service
 
-    def run_trading_simulation(self, trading_stocks, trading_start, trading_end):
+    def run_trading_simulation(self, trading_stocks, trading_start, trading_end, predictions = None):
         data = {}
 
         start_year, start_month = trading_start
@@ -33,9 +33,9 @@ class TradingSystem:
                 else:
                     current_month += 1
             
-        self.simulate_trading(data)
+        self.simulate_trading(data, predictions)
 
-    def simulate_trading(self, data):
+    def simulate_trading(self, data, predictions):
         combined_data = []
         for symbol, entries in data.items():
             for month_entry in entries:
@@ -44,6 +44,11 @@ class TradingSystem:
                     combined_data.append(combined_entry)
         
         df = pd.DataFrame(combined_data)
+
+        n = len(predictions)
+        df = df[-n:]
+
+        df['predictions'] = predictions
         print(df)
         df['date'] = pd.to_datetime(df['date']).dt.date
         df.sort_values(by='date', inplace=True)
@@ -56,11 +61,6 @@ class TradingSystem:
 
         for _, row in daily_data_sorted.iterrows():
             symbol = row['symbol']
-            open_price = row['open']
-            high_price = row['high']
-            low_price = row['low']
-            close_price = row['close']
-            volume = row['volume']
             #print(f"Processing {symbol} at {row['time']} with open={open_price}, close={close_price}")
 
             if self.strategy.should_enter_trade(symbol, row):

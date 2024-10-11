@@ -3,14 +3,14 @@ from unittest.mock import MagicMock
 from trading_system import TradingSystem
 from data.stock_data_service import StockDataService
 from portfolio import Portfolio
-from strategy import BasicStrategy
+from learning_models.basic_model import BasicModel
 
 class TestTradingSystem(unittest.TestCase):
 
     def setUp(self):
         initial_balance = 100000
         self.portfolio = Portfolio(risk_tolerance=1, initial_balance=initial_balance)
-        strategy = BasicStrategy(self.portfolio)
+        strategy = BasicModel(self.portfolio)
         data_service = MagicMock()
         self.trading_system = TradingSystem(self.portfolio, strategy, data_service)
 
@@ -38,8 +38,6 @@ class TestTradingSystem(unittest.TestCase):
 
     def test_trading_simulation_with_mocked_data(self):
         self.trading_system.run_trading_simulation(self.trading_stocks, trading_start=(2024, 8), trading_end=(2024, 8))
-
-        print(self.get)
 
         assert self.portfolio.get_positions_symbol('STOCK_A') is None
         assert self.portfolio.get_positions_symbol('STOCK_B') is None

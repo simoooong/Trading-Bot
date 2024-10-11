@@ -1,28 +1,26 @@
+from abc import ABC, abstractmethod
 from portfolio import Portfolio
 
-class BasicStrategy:
+class TradingStrategy(ABC):
     def __init__(self, portfolio: Portfolio):
         self.portfolio = portfolio
 
+    @abstractmethod
     def should_enter_trade(self, symbol, price_data):
-        # ToDo: define trading strategy
-        if self.portfolio.get_positions_symbol(symbol) is not None:
-            return False
+        """Determine if the strategy should enter a trade."""
+        pass
 
-        return True
-
+    @abstractmethod
     def enter_trade_long(self, symbol, entry_price, date):
-        quantity = int(self.portfolio.get_balance() / entry_price)
-        entry_price = entry_price
-        stop_loss = entry_price * 0.99
-        take_profit = entry_price * 1.02
-
-        self.portfolio.trade_long(symbol, date, quantity, entry_price, stop_loss, take_profit)
+        """Implement the logic for entering a long trade."""
+        pass
 
     def exit_trade_long(self, symbol, current_price, date):
+        """Implement the logic for exiting a long trade."""
         self.portfolio.exit_long(symbol, date, current_price)
 
     def check_for_exit(self, symbol, current_price):
+        """Check if the trade should be exited based on strategy rules."""
         positions = self.portfolio.get_positions()
         
         if symbol not in positions:
@@ -37,4 +35,3 @@ class BasicStrategy:
             return True
     
         return False
-    
