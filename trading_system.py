@@ -12,27 +12,9 @@ class TradingSystem:
     def run_trading_simulation(self, trading_stocks, trading_start, trading_end, predictions = None):
         data = {}
 
-        start_year, start_month = trading_start
-        end_year, end_month = trading_end
-
         for symbol in trading_stocks:
-            data[symbol] = []
+            data[symbol] = self.data_service.get_data(symbol, trading_start, trading_end)
 
-            current_year = start_year
-            current_month = start_month
-
-            while (current_year, current_month) <= (end_year, end_month):
-                monthly_data = self.data_service.get_monthly_data(symbol, current_year, current_month)
-
-                if monthly_data is not None:
-                    data[symbol].append(monthly_data)
-                
-                if current_month == 12:
-                    current_month = 1
-                    current_year += 1
-                else:
-                    current_month += 1
-            
         self.simulate_trading(data, predictions)
 
     def simulate_trading(self, data, predictions):
@@ -45,8 +27,9 @@ class TradingSystem:
         
         df = pd.DataFrame(combined_data)
 
-        n = len(predictions)
-        df = df[-n:]
+        if predictions is not None:
+            n = len(predictions)
+            df = df[-n:]
 
         df['predictions'] = predictions
         print(df)

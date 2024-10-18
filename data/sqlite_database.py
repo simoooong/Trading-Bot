@@ -34,7 +34,7 @@ class SQLiteDatabase(DatabaseInterface):
     def get_data(self, symbol: str, start_date: str, end_date: str) -> List[Dict[str, Any]]:
         """Fetch data for a given symbol between the start and end dates."""
         try:
-            print(start_date, end_date)
+            #print(start_date, end_date)
             cursor = self.conn.cursor()
             query = '''
                 SELECT * FROM stock_data

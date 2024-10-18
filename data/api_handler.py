@@ -12,6 +12,8 @@ class ApiClient:
 
     def fetch_data_from_api(self, symbol, year, month):
         spec_month = f"{year}-{str(month).zfill(2)}"
+        print(spec_month)
+        
         url = f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol={symbol}&interval={self.interval}&month={spec_month}&outputsize=full&apikey={self.api_key}"
         
         req = requests.get(url)

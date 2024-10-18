@@ -6,15 +6,16 @@ from calendar import monthrange
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import train_test_split
 from data.database_interface import DatabaseInterface
+from data.stock_data_service import StockDataService
 
 class PreprocessData:
-    def __init__(self, db: DatabaseInterface):
+    def __init__(self, db: DatabaseInterface, data_service: StockDataService):
         self.db = db
+        self.data_servive = data_service
 
     def preprocess_data(self, symbol, start_date, end_date, test_size = 0.15):
-        start_date = f"{start_date[0]}-{str(start_date[1]).zfill(2)}-01"
-        end_date = f"{end_date[0]}-{str(end_date[1]).zfill(2)}-{monthrange(end_date[0], end_date[1])[1]}"
-        raw_data = self.db.get_data(symbol, start_date, end_date)
+        raw_nested_data = self.data_servive.get_data(symbol, start_date, end_date)
+        raw_data = [item for sublist in raw_nested_data for item in sublist]
         df = pd.DataFrame(raw_data)
         df.sort_values(['date', 'time'], ascending=[True, True])
         df['time'] = pd.to_datetime(df['time'], format='%H:%M:%S').dt.time
@@ -40,7 +41,7 @@ class PreprocessData:
         X_train_scaled = scaler.fit_transform(X_train[numerical_features])
         X_test_scaled = scaler.transform(X_test[numerical_features])
 
-        print(X_train_scaled)
+        #print(X_train_scaled)
 
         return X_train_scaled, X_test_scaled, y_train, y_test
 

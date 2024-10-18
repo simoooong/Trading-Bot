@@ -15,6 +15,25 @@ class TradingStrategy(ABC):
         """Implement the logic for entering a long trade."""
         pass
 
+    @abstractmethod
+    def train_model(self, X_train_y_train):
+        """
+        Train the machine learning model using the provided training data and labels.
+        Implementations of this method should define how the model learns from the data 
+        to make predictions.
+        """
+        pass
+
+    @abstractmethod
+    def evaluate_model(X_test, y_test):
+        """
+        Evaluate the trained model on the provided test data and labels.
+        Implementations should calculate performance metrics (e.g., accuracy) 
+        and return predictions based on the test data.
+        """
+        pass
+
+
     def exit_trade_long(self, symbol, current_price, date):
         """Implement the logic for exiting a long trade."""
         self.portfolio.exit_long(symbol, date, current_price)
