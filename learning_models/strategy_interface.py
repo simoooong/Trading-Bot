@@ -16,6 +16,15 @@ class TradingStrategy(ABC):
         pass
 
     @abstractmethod
+    def tune_hyperparameters(self, X_train, y_train):
+        '''
+        Tune the hyperparameters of the model using the provided training data (X_train, y_train).
+        This function will implement strategies like GridSearchCV or RandomizedSearchCV to find the optimal
+        hyperparameters for the model.
+        '''
+        pass
+
+    @abstractmethod
     def train_model(self, X_train_y_train):
         """
         Train the machine learning model using the provided training data and labels.

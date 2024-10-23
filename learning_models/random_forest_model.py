@@ -1,32 +1,43 @@
 from learning_models.strategy_interface import TradingStrategy
 from portfolio import Portfolio
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV, TimeSeriesSplit
 from sklearn.metrics import accuracy_score, classification_report
 
-class LogisticRegressionModel(TradingStrategy):
+class RandomForestModel(TradingStrategy):
     def __init__(self, portfolio: Portfolio, class_weight=None):
         super().__init__(portfolio)
-        self.model = LogisticRegression(class_weight=class_weight, max_iter=5000)
+        self.model = RandomForestClassifier(class_weight=class_weight)
 
     def tune_hyperparameters(self, X_train, y_train):
+
         param_grid = {
-            'C': [0.001, 0.01, 0.1, 1, 10],  # Regularization strength
-            #'penalty': ['l1', 'l2']       # L1 or L2 regularization
-            'solver': ['lbfgs', 'liblinear', 'newton-cg', 'newton-cholesky'] # Different solvers for Logistic Regression
+            'n_estimators': [100, 200],          # Number of trees in the forest
+            'max_depth': [20, None],              # Maximum depth of the tree
+            'min_samples_split': [2, 10],          # Minimum samples to split an internal node
+            'min_samples_leaf': [1, 4],            # Minimum samples required to be a leaf node
+            'bootstrap': [True, False]                # Whether bootstrap samples are used
         }
+        
+        tscv = TimeSeriesSplit(n_splits=5)  # Time series split for cross-validation
 
-        tscv = TimeSeriesSplit(n_splits=20)
-
-        grid_search = GridSearchCV(estimator=self.model, param_grid=param_grid, cv=tscv, scoring='accuracy', verbose=1)
+        grid_search = GridSearchCV(
+            estimator=self.model,
+            param_grid=param_grid,
+            cv=tscv,
+            scoring='accuracy',
+            verbose=1
+        )
 
         grid_search.fit(X_train, y_train)
 
+        # Get the best parameters and retrain the model with the optimal hyperparameters
         best_params = grid_search.best_params_
         print(f"Best hyperparameters: {best_params}")
+        
+        # Update the model with the best parameters found
+        self.model = RandomForestClassifier(**best_params, class_weight='balanced')
 
-        # Train the final model with the best hyperparameters
-        self.model = LogisticRegression(**best_params, class_weight='balanced')
 
     def train_model(self, X_train, y_train):
         self.model.fit(X_train, y_train)

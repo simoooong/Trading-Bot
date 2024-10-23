@@ -16,8 +16,14 @@ class ApiClient:
         
         url = f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol={symbol}&interval={self.interval}&month={spec_month}&outputsize=full&apikey={self.api_key}"
         
-        req = requests.get(url)
-        self.data = req.json()
+        try:
+            req = requests.get(url)
+            self.data = req.json()
+            if "Information" in self.data:
+                raise Exception(f"API Error: {self.data['Information']}")
+        except requests.exceptions.RequestException as e:
+            raise SystemExit(e)
+
         time_series = self.data['Time Series (60min)']
 
         # Transform the data into a list of dictionaries

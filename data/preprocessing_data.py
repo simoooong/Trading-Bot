@@ -30,16 +30,10 @@ class PreprocessData:
         df.dropna(inplace=True)
         X_train, X_test, y_train, y_test = self.split_data(df, test_size)
 
-        numerical_features = [
-            'year', 'month', 'day', 'hour',
-            'close', 'volume', 'ma20', 'ma50',
-            'ma200', 'rsi', 'BBL_20_2.0', 'BBM_20_2.0',
-            'BBU_20_2.0', 'BBB_20_2.0', 'BBP_20_2.0'
-        ]
         
         scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train[numerical_features])
-        X_test_scaled = scaler.transform(X_test[numerical_features])
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
 
         #print(X_train_scaled)
 
@@ -76,15 +70,59 @@ class PreprocessData:
         return X_train, X_test, y_train, y_test
 
     def add_technical_indicators(self, df):
+        #df['ma5'] = ta.sma(df['close'], length = 5)
+        #df['ma10'] = ta.sma(df['close'], length = 10)
         df['ma20'] = ta.sma(df['close'], length = 20)
         df['ma50'] = ta.sma(df['close'], length = 50)
+        #df['ma100'] = ta.sma(df['close'], length = 100)
         df['ma200'] = ta.sma(df['close'], length = 200)
 
         df['rsi'] = ta.rsi(df['close'], length = 14)
 
+        #new
+        # for i in range(2, len(df) + 1):
+        #     levels = self.calculate_fibonacci_levels(df.iloc[:i])
+        #     for level_name, level_value in levels.items():
+        #         df.at[df.index[i - 1], level_name] = level_value
+        
+        # df['obv'] = ta.obv(df['close'], df['volume'])
+        # df['roc'] = ta.roc(df['close'], length=10)
+
+        # stoch = ta.stoch(df['high'], df['low'], df['close'], k=14, d=3)
+        # df = pd.concat([df, stoch], axis=1)
+
+        # # Moving Average Convergence Divergence (MACD)
+        # macd = ta.macd(df['close'], fast=12, slow=26, signal=9)
+        # print(macd)
+        # df = pd.concat([df, macd], axis=1)
+
+        #new
+
         bb = ta.bbands(df['close'], length=20, std=2)
         return pd.concat([df, bb], axis=1)
 
+    def calculate_fibonacci_levels(self, df, period=17):
+        # Filter the last 'period' days of data
+        recent_data = df.tail(period)
+
+        # Identify the swing high and swing low in the recent data
+        swing_high = recent_data['high'].max()
+        swing_low = recent_data['low'].min()
+
+        # Calculate the difference
+        difference = swing_high - swing_low
+
+        # Calculate Fibonacci levels
+        fib_levels = {
+            'Fibonacci Level 0%': swing_high,
+            'Fibonacci Level 23.6%': swing_high - difference * 0.236,
+            'Fibonacci Level 38.2%': swing_high - difference * 0.382,
+            'Fibonacci Level 50%': swing_high - difference * 0.5,
+            'Fibonacci Level 61.8%': swing_high - difference * 0.618,
+            'Fibonacci Level 100%': swing_low,
+        }
+
+        return fib_levels
 
     def normalize_data(self, df):
         scaler = StandardScaler()
@@ -103,18 +141,18 @@ class PreprocessData:
         ]
         df[numerical_features] = scaler.fit_transform(df[numerical_features])
     
-    def create_labels(self, df, threshold=0.0121):
+    def create_labels(self, df, threshhold=0.005):
         labels = []
         for i in range(len(df) - 1):
             label = 0 # default to neutral
             for k in range(i + 1, len(df)):
-                if not self.is_market_open(df['time'].iloc[k]):
+                if not is_market_open(df['time'].iloc[k]):
                     break
 
-                if (df['close'].iloc[k] / df['close'].iloc[i]) <= 1 - threshold/2:
+                if (df['close'].iloc[k] / df['close'].iloc[i]) <= 1 - threshhold/2:
                     label = 0
                     break
-                if (df['close'].iloc[k] / df['close'].iloc[i]) >= 1 + threshold:
+                if (df['close'].iloc[k] / df['close'].iloc[i]) >= 1 + threshhold:
                     label = 1
                     break
             labels.append(label)
@@ -126,7 +164,7 @@ class PreprocessData:
         print("Buy signals:")
         print(buy_signals)
 
-    def is_market_open(self, cur_time):
-        market_open = time(9, 30)
-        market_close = time(16, 0)
-        return market_open <= cur_time <= market_close
+def is_market_open(cur_time):
+    market_open = time(9, 30)
+    market_close = time(16, 0)
+    return market_open <= cur_time <= market_close
