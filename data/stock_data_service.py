@@ -1,10 +1,10 @@
 from data.database_interface import DatabaseInterface
-from data.api_handler import ApiClient
+from data.api_client_interface import ApiClientInterface
 from typing import List, Dict, Any
 from calendar import monthrange
 
 class StockDataService:
-    def __init__(self, db: DatabaseInterface, api_client: ApiClient):
+    def __init__(self, db: DatabaseInterface, api_client: ApiClientInterface):
         self.db = db
         self.api_client = api_client
 

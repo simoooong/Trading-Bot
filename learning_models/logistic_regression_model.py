@@ -54,11 +54,9 @@ class LogisticRegressionModel(TradingStrategy):
         
         return False
     
-    def enter_trade_long(self, symbol, entry_price, date):
-        threshhold = 0.01
+    def enter_trade_long(self, symbol, entry_price, atr,  date,  stop_loss_multiplier=1.5, take_profit_multiplier=3.0):
+        stop_loss = entry_price - (atr * stop_loss_multiplier)
+        take_profit = entry_price + (atr * take_profit_multiplier)
         quantity = int(self.portfolio.get_balance() / entry_price)
-        entry_price = entry_price
-        stop_loss = entry_price * (1 - threshhold / 2)
-        take_profit = entry_price * (1 + threshhold)
 
         self.portfolio.trade_long(symbol, date, quantity, entry_price, stop_loss, take_profit)

@@ -3,6 +3,7 @@ from learning_models.strategy_interface import TradingStrategy
 from portfolio import Portfolio
 from data.stock_data_service import StockDataService
 from data.preprocessing_data import is_market_open
+import pandas_ta as ta
 
 class TradingSystem:
     def __init__(self, portfolio: Portfolio, strategy: TradingStrategy, data_service: StockDataService):
@@ -27,6 +28,7 @@ class TradingSystem:
                     combined_data.append(combined_entry)
         
         df = pd.DataFrame(combined_data)
+        self.atr(df)
 
         if predictions is not None:
             n = len(predictions)
@@ -47,14 +49,20 @@ class TradingSystem:
         daily_data_sorted = daily_data.sort_values(by='time')
         daily_data_sorted['time'] = pd.to_datetime(daily_data_sorted['time'], format='%H:%M:%S').dt.time
         filtered_data = daily_data_sorted[daily_data_sorted['time'].apply(is_market_open)]
+        symbol = daily_data.iloc[0]['symbol']
         for _, row in filtered_data.iterrows():
-            symbol = row['symbol']
+            #symbol = row['symbol']
             #print(f"Processing {symbol} at {row['time']} with open={open_price}, close={close_price}")
 
             if self.strategy.should_enter_trade(symbol, row):
-                self.strategy.enter_trade_long(symbol, row['close'], f"{day}-{row['time']}")
+                self.strategy.enter_trade_long(symbol, row['close'], row['atr'], f"{day}-{row['time']}")
 
             if self.strategy.check_for_exit(symbol, row['close']):
                 self.strategy.exit_trade_long(symbol, row['close'], f"{day}-{row['time']}")
 
-        self.portfolio.close_all_positions(symbol, filtered_data.iloc[-1]['close'], f"{day}-{row['time']}")
+        if not filtered_data.empty:
+            self.portfolio.close_all_positions(symbol, filtered_data.iloc[-1]['close'], f"{day}-{row['time']}")
+
+
+    def atr(self, df):
+        df['atr'] = ta.atr(high=df['high'], low=df['low'], close=df['close'], length=14)
