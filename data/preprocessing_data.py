@@ -19,6 +19,7 @@ class PreprocessData:
         df.sort_values(['date', 'time'], ascending=[True, True])
         df['time'] = pd.to_datetime(df['time'], format='%H:%M:%S').dt.time
         df['date'] = pd.to_datetime(df['date'])
+        df = remove_spikes(df)
         df = self.add_technical_indicators(df)
         self.create_labels(df)
         df['year'] = df['date'].dt.year
@@ -37,29 +38,6 @@ class PreprocessData:
         #print(X_train_scaled)
 
         return X_train_scaled, X_test_scaled, y_train, y_test
-
-
-    # def preprocess_data(self, symbol, start_date, end_date):
-    #     start_date = f"{start_date[0]}-{str(start_date[1]).zfill(2)}-01"
-    #     end_date = f"{end_date[0]}-{str(end_date[1]).zfill(2)}-{monthrange(end_date[0], end_date[1])[1]}"
-    #     raw_data = self.db.get_data(symbol, start_date, end_date)
-    #     df = pd.DataFrame(raw_data)
-    #     df.sort_values(['date', 'time'], ascending=[True, True])
-
-    #     df['time'] = pd.to_datetime(df['time'], format='%H:%M:%S').dt.time  # convert time to proper time object
-    #     df['date'] = pd.to_datetime(df['date'])  # convert date to datetime object
-
-    #     print(df)
-    #     df = self.add_technical_indicators(df)
-    #     print(df)
-    #     self.create_labels(df)
-    #     self.normalize_data(df)
-
-    #     df.drop(columns=['symbol', 'date', 'time'], inplace=True)
-    #     df.dropna(inplace=True)
-
-    #     print(df)
-    #     return df
 
     def split_data(self, df, test_size):
         y = df['label']
@@ -183,3 +161,18 @@ def is_market_open(cur_time):
     market_open = time(9, 30)
     market_close = time(16, 0)
     return market_open <= cur_time <= market_close
+
+def remove_spikes(df, threshold=1.05):
+    # Iterate through DataFrame rows, excluding the first and last rows
+    for i in range(1, len(df) - 1):
+        # Check if current 'close' is more than `threshold` times higher or lower than the previous and next prices
+        high = (df['close'].iloc[i] / df['close'].iloc[i - 1]) > threshold and (df['close'].iloc[i] / df['close'].iloc[i + 1]) > threshold
+        low = (df['close'].iloc[i] / df['close'].iloc[i - 1]) < (1 / threshold) and (df['close'].iloc[i] / df['close'].iloc[i + 1]) < (1 / threshold)
+        # If a spike is detected (either high or low)
+        if high or low:
+            # Replace the values with the average of the previous and next rows
+            df.loc[i, 'open'] = (df['open'].iloc[i + 1] + df['open'].iloc[i - 1]) / 2
+            df.loc[i, 'close'] = (df['close'].iloc[i + 1] + df['close'].iloc[i - 1]) / 2
+            df.loc[i, 'high'] = (df['high'].iloc[i + 1] + df['high'].iloc[i - 1]) / 2
+            df.loc[i, 'low'] = (df['low'].iloc[i + 1] + df['low'].iloc[i - 1]) / 2
+    return df

@@ -2,7 +2,7 @@ import pandas as pd
 from learning_models.strategy_interface import TradingStrategy
 from portfolio import Portfolio
 from data.stock_data_service import StockDataService
-from data.preprocessing_data import is_market_open
+from data.preprocessing_data import is_market_open, remove_spikes
 import pandas_ta as ta
 
 class TradingSystem:
@@ -11,15 +11,15 @@ class TradingSystem:
         self.strategy = strategy
         self.data_service = data_service
 
-    def run_trading_simulation(self, trading_stocks, trading_start, trading_end, predictions = None):
+    def run_trading_simulation(self, trading_stocks, trading_start, trading_end, predictions = None, probabilities = None):
         data = {}
 
         for symbol in trading_stocks:
             data[symbol] = self.data_service.get_data(symbol, trading_start, trading_end)
 
-        return self.simulate_trading(data, predictions)
+        return self.simulate_trading(data, predictions, probabilities)
 
-    def simulate_trading(self, data, predictions):
+    def simulate_trading(self, data, predictions, probabilities):
         combined_data = []
         for symbol, entries in data.items():
             for month_entry in entries:
@@ -28,24 +28,34 @@ class TradingSystem:
                     combined_data.append(combined_entry)
         
         df = pd.DataFrame(combined_data)
+        df = remove_spikes(df)
         self.atr(df)
 
         if predictions is not None:
             n = len(predictions)
             df = df[-n:]
+            df['predictions'] = predictions
+        
+        if probabilities is not None:
+            df['probability'] = probabilities[:, 1]
+            kelly_criteria = True
+        else:
+            kelly_criteria = False
 
-        df['predictions'] = predictions
         print(df)
         df['date'] = pd.to_datetime(df['date']).dt.date
+
+        df = df[(df['date'] >= pd.to_datetime('2023-01-01').date()) & (df['date'] <= pd.to_datetime('2023-12-31').date())]
+    
         df.sort_values(by='date', inplace=True)
         for day, daily_data in df.groupby('date'):
             #print(f"Processing data for {day}")
-            self.process_day(day, daily_data)
+            self.process_day(day, daily_data, kelly_criteria)
 
         return df
         
 
-    def process_day(self, day, daily_data):
+    def process_day(self, day, daily_data, kelly_criteria):
         daily_data_sorted = daily_data.sort_values(by='time')
         daily_data_sorted['time'] = pd.to_datetime(daily_data_sorted['time'], format='%H:%M:%S').dt.time
         filtered_data = daily_data_sorted[daily_data_sorted['time'].apply(is_market_open)]
@@ -55,8 +65,10 @@ class TradingSystem:
             #print(f"Processing {symbol} at {row['time']} with open={open_price}, close={close_price}")
 
             if self.strategy.should_enter_trade(symbol, row):
-                self.strategy.enter_trade_long(symbol, row['close'], row['atr'], f"{day}-{row['time']}")
-
+                if kelly_criteria:
+                    self.strategy.enter_trade_long(symbol, row['close'], row['atr'], f"{day}-{row['time']}", row['probability'])
+                else:
+                    self.strategy.enter_trade_long(symbol, row['close'], row['atr'], f"{day}-{row['time']}", None)
             if self.strategy.check_for_exit(symbol, row['close']):
                 self.strategy.exit_trade_long(symbol, row['close'], f"{day}-{row['time']}")
 

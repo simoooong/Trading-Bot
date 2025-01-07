@@ -6,16 +6,6 @@ class TradingStrategy(ABC):
         self.portfolio = portfolio
 
     @abstractmethod
-    def should_enter_trade(self, symbol, price_data):
-        """Determine if the strategy should enter a trade."""
-        pass
-
-    @abstractmethod
-    def enter_trade_long(self, symbol, entry_price, date):
-        """Implement the logic for entering a long trade."""
-        pass
-
-    @abstractmethod
     def tune_hyperparameters(self, X_train, y_train):
         '''
         Tune the hyperparameters of the model using the provided training data (X_train, y_train).
@@ -42,10 +32,42 @@ class TradingStrategy(ABC):
         """
         pass
 
+    def should_enter_trade(self, symbol, df_row):
+        if self.portfolio.get_positions_symbol(symbol) is not None:
+            return False
+
+        if df_row['predictions'] == 1:
+            return True
+        
+        return False
 
     def exit_trade_long(self, symbol, current_price, date):
         """Implement the logic for exiting a long trade."""
         self.portfolio.exit_long(symbol, date, current_price)
+
+    def enter_trade_long(self, symbol, entry_price, atr, date, probability, stop_loss_multiplier=1.5, take_profit_multiplier=3.0):
+        """Implement the logic for entering a long trade."""
+        stop_loss = entry_price - (atr * stop_loss_multiplier)
+        take_profit = entry_price + (atr * take_profit_multiplier)
+        if probability is not None:
+            p = probability
+            q = 1 - p
+            g = (take_profit - entry_price) / entry_price
+            l = (entry_price - stop_loss) / entry_price
+            f = (p / l) - (q / g)
+
+            portfolio_balance = self.portfolio.get_balance()
+            allocation = f * portfolio_balance
+            if f > 1:
+                quantity = int(self.portfolio.get_balance() / entry_price)
+            elif allocation < 0:
+                return
+            else:
+                quantity = int(allocation / entry_price)
+        else:
+            quantity = int(self.portfolio.get_balance() / entry_price)
+
+        self.portfolio.trade_long(symbol, date, quantity, entry_price, stop_loss, take_profit)
 
     def check_for_exit(self, symbol, current_price):
         """Check if the trade should be exited based on strategy rules."""
